@@ -148,6 +148,15 @@
 
 
 
+    /* Center the detailed section when only one card is visible */
+    #detailOptions {
+
+      justify-content: center;
+
+    }
+
+
+
     @media (max-width: 768px) {
 
       body {
@@ -632,7 +641,43 @@
 
 
 
-    <div class="options-grid">
+    <!-- Step 1: High-level choice -->
+    <div class="options-grid" id="initialOptions">
+
+      <section class="option-card" aria-label="Choose upload from system">
+        <div class="option-inner">
+          <header class="option-header">
+            <div class="option-title">
+              <h2>Upload from System</h2>
+              <span>Use existing photos or a PDF from your device</span>
+            </div>
+          </header>
+          <button type="button" class="btn btn-primary" id="selectSystemOption">
+            Upload from System
+          </button>
+        </div>
+      </section>
+
+      <section class="option-card" aria-label="Choose upload via camera">
+        <div class="option-inner">
+          <header class="option-header">
+            <div class="option-title">
+              <h2>Use Camera</h2>
+              <span>Take new photos of your insurance card</span>
+            </div>
+          </header>
+          <button type="button" class="btn btn-primary" id="selectCameraOption">
+            Open Camera Options
+          </button>
+        </div>
+      </section>
+
+    </div>
+
+
+
+    <!-- Step 2: Detailed options (hidden until a choice is made) -->
+    <div class="options-grid" id="detailOptions" style="display: none;">
 
       <!-- LEFT: Upload from device -->
 
@@ -692,36 +737,8 @@
 
 
 
-          <div class="preview-grid" aria-label="File upload previews" style="margin-top: 12px;">
-
-            <div class="preview-slot">
-
-              <div class="preview-label">Front Image</div>
-
-              <div class="preview-box" id="frontPreviewBox">
-
-                <span>No file selected yet</span>
-
-              </div>
-
-              <span class="file-name" id="frontFileName"></span>
-
-            </div>
-
-            <div class="preview-slot">
-
-              <div class="preview-label">Back Image</div>
-
-              <div class="preview-box" id="backPreviewBox">
-
-                <span>No file selected yet</span>
-
-              </div>
-
-              <span class="file-name" id="backFileName"></span>
-
-            </div>
-
+          <div id="deviceSelectedFiles" class="hint" style="margin-top: 12px;">
+            No files selected yet.
           </div>
 
         </div>
@@ -844,11 +861,62 @@
 
     </div>
 
+    <!-- Submit + back buttons (shared for both methods) -->
+    <div style="display: none; margin-top: 24px; text-align: center;" id="submitContainer">
+      <button type="button" class="btn btn-outline" id="backToMainBtn" style="margin-right: 8px;">
+        Back
+      </button>
+      <button type="button" class="btn btn-primary" id="submitBtn">
+        Submit
+      </button>
+    </div>
+
   </div>
 
 
 
   <script>
+
+    // -------- Step navigation (show chosen method) --------
+    const initialOptions = document.getElementById("initialOptions");
+    const detailOptions = document.getElementById("detailOptions");
+    const systemSection = document.querySelector('section[aria-label="Upload from your device"]');
+    const cameraSection = document.querySelector('section[aria-label="Use camera to capture insurance card"]');
+
+    const selectSystemOption = document.getElementById("selectSystemOption");
+    const selectCameraOption = document.getElementById("selectCameraOption");
+
+    const submitContainer = document.getElementById("submitContainer");
+    const backToMainBtn = document.getElementById("backToMainBtn");
+
+    if (selectSystemOption && selectCameraOption && initialOptions && detailOptions && submitContainer) {
+      selectSystemOption.addEventListener("click", () => {
+        initialOptions.style.display = "none";
+        detailOptions.style.display = "grid";
+        submitContainer.style.display = "block";
+        if (systemSection) systemSection.style.display = "block";
+        if (cameraSection) cameraSection.style.display = "none";
+      });
+
+      selectCameraOption.addEventListener("click", () => {
+        initialOptions.style.display = "none";
+        detailOptions.style.display = "grid";
+        submitContainer.style.display = "block";
+        if (cameraSection) cameraSection.style.display = "block";
+        if (systemSection) systemSection.style.display = "none";
+      });
+    }
+
+    // Back button to return to main choice
+    if (backToMainBtn && initialOptions && detailOptions && submitContainer) {
+      backToMainBtn.addEventListener("click", () => {
+        // Hide detailed step and submit, show main options again
+        detailOptions.style.display = "none";
+        submitContainer.style.display = "none";
+        initialOptions.style.display = "grid";
+      });
+    }
+
 
     // -------- Upload from device --------
 
@@ -858,25 +926,7 @@
 
     const deviceErrorBanner = document.getElementById("deviceErrorBanner");
 
-
-
-    const frontPreviewBox = document.getElementById("frontPreviewBox");
-
-    const backPreviewBox = document.getElementById("backPreviewBox");
-
-    const frontFileName = document.getElementById("frontFileName");
-
-    const backFileName = document.getElementById("backFileName");
-
-
-
-    function clearPreview(box, labelEl) {
-
-      box.innerHTML = "<span>No file selected yet</span>";
-
-      if (labelEl) labelEl.textContent = "";
-
-    }
+    const deviceSelectedFiles = document.getElementById("deviceSelectedFiles");
 
 
 
@@ -904,9 +954,9 @@
 
       deviceErrorBanner.classList.remove("visible");
 
-      clearPreview(frontPreviewBox, frontFileName);
-
-      clearPreview(backPreviewBox, backFileName);
+      if (deviceSelectedFiles) {
+        deviceSelectedFiles.textContent = "No files selected yet.";
+      }
 
 
 
@@ -934,65 +984,16 @@
 
 
 
-      // Map first file -> front, second -> back
-
-      const [frontFile, backFile] = files;
-
-
-
-      function renderFile(file, previewBox, labelEl) {
-
-        if (!file) {
-
-          clearPreview(previewBox, labelEl);
-
-          return;
-
-        }
-
-
-
-        // If it's an image, show image preview. If PDF, show icon + name.
-
-        labelEl.textContent = file.name;
-
-
-
-        if (isImageFile(file)) {
-
-          const reader = new FileReader();
-
-          reader.onload = (e) => {
-
-            previewBox.innerHTML = "";
-
-            const img = document.createElement("img");
-
-            img.src = e.target.result;
-
-            img.alt = "Uploaded preview";
-
-            previewBox.appendChild(img);
-
-          };
-
-          reader.readAsDataURL(file);
-
-        } else {
-
-          // PDF or other allowed non-image type
-
-          previewBox.innerHTML = "<span>PDF file selected</span>";
-
-        }
-
+      // Show simple list of selected files (supports images and PDFs)
+      if (deviceSelectedFiles) {
+        const parts = files.map((file) => {
+          const typeLabel = isImageFile(file)
+            ? "Image"
+            : (file.type === "application/pdf" ? "PDF" : "File");
+          return `${file.name} (${typeLabel})`;
+        });
+        deviceSelectedFiles.textContent = parts.join(", ");
       }
-
-
-
-      renderFile(frontFile, frontPreviewBox, frontFileName);
-
-      renderFile(backFile, backPreviewBox, backFileName);
 
     });
 
