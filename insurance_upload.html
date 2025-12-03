@@ -667,7 +667,7 @@
             </div>
           </header>
           <button type="button" class="btn btn-primary" id="selectCameraOption">
-            Open Camera Options
+            Open Camera 
           </button>
         </div>
       </section>
@@ -889,10 +889,14 @@
     const submitContainer = document.getElementById("submitContainer");
     const backToMainBtn = document.getElementById("backToMainBtn");
 
+    // Track which method is active: "system" | "camera" | null
+    let activeMethod = null;
+
     if (selectSystemOption && selectCameraOption && initialOptions && detailOptions && submitContainer) {
       selectSystemOption.addEventListener("click", () => {
         initialOptions.style.display = "none";
         detailOptions.style.display = "grid";
+        activeMethod = "system";
         submitContainer.style.display = "block";
         if (systemSection) systemSection.style.display = "block";
         if (cameraSection) cameraSection.style.display = "none";
@@ -901,7 +905,9 @@
       selectCameraOption.addEventListener("click", () => {
         initialOptions.style.display = "none";
         detailOptions.style.display = "grid";
-        submitContainer.style.display = "block";
+        activeMethod = "camera";
+        // For camera, hide submit until both images are captured
+        submitContainer.style.display = "none";
         if (cameraSection) cameraSection.style.display = "block";
         if (systemSection) systemSection.style.display = "none";
       });
@@ -914,6 +920,7 @@
         detailOptions.style.display = "none";
         submitContainer.style.display = "none";
         initialOptions.style.display = "grid";
+        activeMethod = null;
       });
     }
 
@@ -1049,6 +1056,13 @@
 
         }
 
+        // If using camera flow, only show submit when both images are captured
+        if (activeMethod === "camera" && submitContainer && cameraFrontBadge && cameraBackBadge) {
+          const frontReady = cameraFrontBadge.style.display !== "none";
+          const backReady = cameraBackBadge.style.display !== "none";
+          submitContainer.style.display = frontReady && backReady ? "block" : "none";
+        }
+
       };
 
       reader.readAsDataURL(file);
@@ -1092,5 +1106,4 @@
 </body>
 
 </html>
-
 
